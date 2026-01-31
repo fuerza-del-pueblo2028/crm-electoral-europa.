@@ -83,8 +83,21 @@ export async function POST(request: Request) {
                         </div>
                         
                         <!-- Footer -->
-                        <div style="background-color: #f8f9fa; padding: 15px 25px; border-top: 1px solid #e0e0e0;">
-                            <p style="font-size: 11px; text-align: center; color: #888; margin: 0;">
+                        <div style="background-color: #f8f9fa; padding: 20px 25px; border-top: 1px solid #e0e0e0;">
+                            <!-- Sección de Contacto y Legales -->
+                            <div style="text-align: center; margin-bottom: 20px;">
+                                <p style="font-size: 13px; color: #555; margin: 0 0 8px 0;">
+                                    Por favor <a href="https://centinelaelectoralsaeeuropa.com/contacto" style="color: #005c2b; text-decoration: none; font-weight: bold;">contáctanos</a> si tienes alguna inquietud.
+                                </p>
+                                <p style="font-size: 11px; color: #888; margin: 0;">
+                                    <a href="https://centinelaelectoralsaeeuropa.com/privacidad" style="color: #666; text-decoration: none;">Privacidad y Política de Cookie</a>
+                                    <span style="margin: 0 5px;">|</span>
+                                    <a href="https://centinelaelectoralsaeeuropa.com/terminos" style="color: #666; text-decoration: none;">Términos y Condiciones</a>
+                                </p>
+                            </div>
+
+                            <!-- Disclaimer original (ahora al final) -->
+                            <p style="font-size: 11px; text-align: center; color: #aaa; margin: 0; border-top: 1px solid #e0e0e0; padding-top: 15px;">
                                 Recibes este correo porque estás registrado en el CRM Electoral de la FP Europa.<br/>
                                 <a href="https://centinelaelectoralsaeeuropa.com" style="color: #005c2b; text-decoration: none;">centinelaelectoralsaeeuropa.com</a>
                             </p>
