@@ -9,8 +9,6 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { nombre, email, asunto, mensaje } = body;
 
-        console.log(`[Contact Form] Nueva solicitud de: ${email}`);
-
         // Validación básica
         if (!nombre || !email || !asunto || !mensaje) {
             return NextResponse.json(
@@ -20,11 +18,9 @@ export async function POST(request: Request) {
         }
 
         // Enviar correo a la administración
-        // IMPORTANTE: Usamos 'noreply@' como remitente para evitar bucles en Hostinger (info -> info a veces se bloquea)
         const { data, error } = await resend.emails.send({
             from: 'Secretaría Asuntos Electorales <noreply@centinelaelectoralsaeeuropa.com>',
             to: ['info@centinelaelectoralsaeeuropa.com'],
-            bcc: ['ls311524@outlook.com'], // Copia oculta de prueba para el usuario
             replyTo: email,
             subject: `[Contacto Web] ${asunto}`,
             html: `
@@ -49,10 +45,9 @@ export async function POST(request: Request) {
 
         if (error) {
             console.error("[Contact Form] Resend Error:", error);
-            return NextResponse.json({ error: `Error enviando el mensaje: ${error.message}` }, { status: 500 });
+            return NextResponse.json({ error: 'Error enviando el mensaje.' }, { status: 500 });
         }
 
-        console.log(`[Contact Form] ✅ Mensaje enviado correctamente. ID: ${data?.id}`);
         return NextResponse.json({ success: true, id: data?.id });
 
     } catch (error: any) {
