@@ -30,8 +30,8 @@ To learn more about Next.js, take a look at the following resources:
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
 ## Documentación y Planificación
-Para consultar el historial de cambios, planes de implementación y guías de este proyecto, revisa la carpeta:
-- `brain/`: Contiene los archivos `walkthrough.md`, `implementation_plan.md` y `GUIA_DESPLIEGUE.md`.
+Toda la inteligencia, historial y manuales del proyecto están centralizados en un solo lugar:
+- **[Centro de Conocimiento (Carpeta brain)](brain/README.md)**: Aquí encontrarás las guías de despliegue, manuales de backup, historial de implementaciones y planes técnicos.
 
 ## Deploy on Vercel
 
