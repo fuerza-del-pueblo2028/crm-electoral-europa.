@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
         // Guardar en tabla comunicaciones si se proporcionó afiliadoId
         if (afiliadoId) {
             try {
-                const { error: dbError } = await supabase
+                const { error: dbError } = await supabaseAdmin
                     .from('comunicaciones')
                     .insert([{
                         afiliado_id: afiliadoId,

@@ -125,6 +125,30 @@ export async function POST(request: Request) {
                     // Resend devuelve data con un array de IDs
                     console.log("[Broadcast Success] Batch enviado. Metadata:", JSON.stringify(data));
                     sentCount += chunk.length;
+
+                    // Log each email in the batch to the comunicaciones table
+                    try {
+                        const logEntries = chunk.map((contacto: any) => ({
+                            tipo: 'email_masivo',
+                            asunto: asunto,
+                            contenido: mensaje,
+                            estado: 'enviado',
+                            fecha_envio: new Date().toISOString(),
+                            email_id: data && 'id' in data ? (data as any).id : null,
+                            // Si tenemos el ID del afiliado lo pondríamos aquí, 
+                            // pero contactos solo tiene email y nombre por ahora.
+                            // Buscamos si podemos obtener el ID o si permitimos null.
+                            // Por ahora logueamos el intento.
+                        }));
+
+                        const { error: dbError } = await supabaseAdmin
+                            .from('comunicaciones')
+                            .insert(logEntries);
+
+                        if (dbError) console.error("[Broadcast Log Error]", dbError);
+                    } catch (logErr) {
+                        console.error("[Broadcast Log Exception]", logErr);
+                    }
                 }
             } catch (err) {
                 console.error("[Broadcast Exception] Excepción en batch:", err);

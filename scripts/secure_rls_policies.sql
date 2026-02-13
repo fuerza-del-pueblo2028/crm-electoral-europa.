@@ -301,6 +301,26 @@ TO anon
 USING (true);
 
 -- =============================================================================
+-- TABLE: comunicaciones_contactos
+-- =============================================================================
+ALTER TABLE comunicaciones_contactos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Enable read access for all users" ON comunicaciones_contactos;
+DROP POLICY IF EXISTS "Enable insert for all users" ON comunicaciones_contactos;
+DROP POLICY IF EXISTS "Enable update for all users" ON comunicaciones_contactos;
+DROP POLICY IF EXISTS "Enable delete for all users" ON comunicaciones_contactos;
+DROP POLICY IF EXISTS "Enable select for anon" ON comunicaciones_contactos;
+DROP POLICY IF EXISTS "Enable insert for anon" ON comunicaciones_contactos;
+DROP POLICY IF EXISTS "Enable update for anon" ON comunicaciones_contactos;
+DROP POLICY IF EXISTS "Enable delete for anon" ON comunicaciones_contactos;
+DROP POLICY IF EXISTS "anon_select_only" ON comunicaciones_contactos;
+
+CREATE POLICY "anon_select_only"
+ON comunicaciones_contactos FOR SELECT
+TO anon
+USING (true);
+
+-- =============================================================================
 -- VERIFICATION: List all active policies to confirm
 -- =============================================================================
 SELECT 
