@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { SECCIONALES, Affiliate } from "@/lib/mockData";
-import { Search, Filter, CheckCircle, XCircle, Loader2, Plus, Download, Upload, Calendar, LayoutDashboard, FileSearch, Eye } from "lucide-react";
+import { Search, Filter, CheckCircle, XCircle, Loader2, Plus, Download, Upload, Calendar, LayoutDashboard, FileSearch, Eye, MapPin } from "lucide-react";
 import { AffiliateModal } from "@/components/AffiliateModal";
 import { NewAffiliateModal } from "@/components/NewAffiliateModal";
 import { ImportAffiliatesModal } from "@/components/ImportAffiliatesModal";
@@ -42,6 +42,9 @@ export default function AffiliatesPage() {
     const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
     const [loading, setLoading] = useState(true);
     const [totalItems, setTotalItems] = useState(0);
+    const [canManage, setCanManage] = useState(false);
+    const [userRole, setUserRole] = useState<string | null>(null);
+    const [userSeccional, setUserSeccional] = useState<string | null>(null);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -49,10 +52,25 @@ export default function AffiliatesPage() {
 
     useEffect(() => {
         const token = localStorage.getItem("auth_token");
+        const role = localStorage.getItem("user_role");
+        const seccional = localStorage.getItem("user_seccional");
+
         if (!token) {
             window.location.href = "/login";
             return;
         }
+
+        setUserRole(role);
+        setUserSeccional(seccional);
+
+        const isManager = role === "administrador" || role === "operador" || role === "admin" || role === "Admin";
+        setCanManage(isManager);
+
+        // Si es operador, forzar la seccional asignada
+        if (role === "operador" && seccional) {
+            setSelectedSeccional(seccional);
+        }
+
         setIsMounted(true);
     }, []);
 
@@ -93,6 +111,10 @@ export default function AffiliatesPage() {
 
             if (selectedSeccional !== "Todas") {
                 query = query.eq('seccional', selectedSeccional);
+            } else if (userRole === "operador" && userSeccional) {
+                // Filtro de seguridad: si es operador y no hay seccional seleccionada (o es "Todas"),
+                // forzar su seccional asignada.
+                query = query.eq('seccional', userSeccional);
             }
 
             if (selectedRole !== "Todos") {
@@ -205,6 +227,8 @@ export default function AffiliatesPage() {
             }
             if (selectedSeccional !== "Todas") {
                 query = query.eq('seccional', selectedSeccional);
+            } else if (userRole === "operador" && userSeccional) {
+                query = query.eq('seccional', userSeccional);
             }
             if (selectedRole !== "Todos") {
                 query = query.eq('role', selectedRole);
@@ -341,6 +365,25 @@ export default function AffiliatesPage() {
                         <h1 className="text-3xl font-bold text-[#005c2b]">Afiliados</h1>
                         <p className="text-gray-500 italic">Gestión del padrón electoral Europa</p>
                     </div>
+
+                    {canManage && (
+                        <div className="hidden lg:flex items-center gap-2 ml-4">
+                            <button
+                                onClick={() => setIsImportModalOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-all font-bold text-xs uppercase tracking-wider"
+                            >
+                                <Upload size={14} />
+                                Importar
+                            </button>
+                            <button
+                                onClick={() => setIsNewModalOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-fp-green text-white rounded-xl hover:bg-fp-green-dark transition-all font-bold text-xs uppercase tracking-wider shadow-sm"
+                            >
+                                <Plus size={14} />
+                                Nuevo Afiliado
+                            </button>
+                        </div>
+                    )}
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-center">
                     {/* View Toggle Switch */}
@@ -359,6 +402,34 @@ export default function AffiliatesPage() {
                         >
                             <FileSearch size={18} />
                         </button>
+                    </div>
+
+                    {/* Seccional Filter */}
+                    <div className="flex bg-gray-50 p-1 rounded-xl gap-1">
+                        {userRole === "operador" ? (
+                            <div className="px-4 py-1.5 rounded-lg bg-white text-fp-green shadow-sm text-xs font-bold border border-gray-100 flex items-center gap-2">
+                                <MapPin size={12} />
+                                {userSeccional}
+                            </div>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => setSelectedSeccional("Todas")}
+                                    className={`px-4 py-1.5 rounded-lg transition-all text-xs font-bold ${selectedSeccional === "Todas" ? 'bg-white text-fp-green shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    Todas
+                                </button>
+                                {SECCIONALES.map(sec => (
+                                    <button
+                                        key={sec}
+                                        onClick={() => setSelectedSeccional(sec)}
+                                        className={`px-4 py-1.5 rounded-lg transition-all text-xs font-bold whitespace-nowrap ${selectedSeccional === sec ? 'bg-white text-fp-green shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                    >
+                                        {sec}
+                                    </button>
+                                ))}
+                            </>
+                        )}
                     </div>
 
                     <div className="relative group">
@@ -490,7 +561,7 @@ export default function AffiliatesPage() {
 
                                     <div className="w-24 h-24 rounded-full bg-gray-50 overflow-hidden border-2 border-white shadow-md group-hover:border-fp-green transition-all flex items-center justify-center">
                                         <img
-                                            src={affiliate.foto_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${affiliate.name}`}
+                                            src={affiliate.foto_url || "/foto_perfil_afiliados.png"}
                                             alt={affiliate.name}
                                             className="w-full h-full object-cover"
                                         />
@@ -543,7 +614,7 @@ export default function AffiliatesPage() {
                                                     <div className="flex items-center space-x-3">
                                                         <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-100 group-hover:border-fp-green transition-all shadow-sm">
                                                             <img
-                                                                src={affiliate.foto_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${affiliate.name}`}
+                                                                src={affiliate.foto_url || "/foto_perfil_afiliados.png"}
                                                                 alt={affiliate.name}
                                                                 className="w-full h-full object-cover"
                                                             />

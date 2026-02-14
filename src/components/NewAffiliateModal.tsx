@@ -15,6 +15,8 @@ interface NewAffiliateModalProps {
 
 export function NewAffiliateModal({ isOpen, onClose, onSuccess }: NewAffiliateModalProps) {
     const [loading, setLoading] = useState(false);
+    const [userRole, setUserRole] = useState<string | null>(null);
+    const [userSeccional, setUserSeccional] = useState<string | null>(null);
     const [lastSavedPhone, setLastSavedPhone] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         nombre: "",
@@ -26,6 +28,17 @@ export function NewAffiliateModal({ isOpen, onClose, onSuccess }: NewAffiliateMo
         telefono: "",
         role: "Miembro" as "Miembro" | "Miembro DC" | "Presidente DM" | "Presidente DB" | "Operador" | "Admin",
         cargoOrganizacional: ""
+    });
+
+    useState(() => {
+        const role = localStorage.getItem("user_role");
+        const seccional = localStorage.getItem("user_seccional");
+        setUserRole(role);
+        setUserSeccional(seccional);
+
+        if (role === "operador" && seccional) {
+            setFormData(prev => ({ ...prev, seccional: seccional }));
+        }
     });
 
     const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -81,7 +94,7 @@ export function NewAffiliateModal({ isOpen, onClose, onSuccess }: NewAffiliateMo
                 email: formData.email,
                 role: formData.role,
                 validado: false,
-                foto_url: uploadedFotoUrl
+                foto_url: uploadedFotoUrl || '/foto_perfil_afiliados.png'
             };
 
             if (formData.telefono && formData.telefono.trim() !== "") {
@@ -381,7 +394,8 @@ export function NewAffiliateModal({ isOpen, onClose, onSuccess }: NewAffiliateMo
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Seccional</label>
                                         <select
-                                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-fp-green focus:border-transparent text-gray-900 font-medium transition-all"
+                                            disabled={userRole === "operador"}
+                                            className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-fp-green focus:border-transparent text-gray-900 font-medium transition-all ${userRole === "operador" ? 'opacity-70 cursor-not-allowed' : ''}`}
                                             value={formData.seccional}
                                             onChange={e => setFormData({ ...formData, seccional: e.target.value })}
                                         >

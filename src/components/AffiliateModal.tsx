@@ -42,7 +42,9 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showCarnet, setShowCarnet] = useState(false);
     const [activeTab, setActiveTab] = useState<'info' | 'contact' | 'historial'>('info');
-    const [isAdmin, setIsAdmin] = useState(false);
+    const [canManage, setCanManage] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState<any>({});
     const [historial, setHistorial] = useState<any[]>([]);
@@ -62,8 +64,16 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
 
     useEffect(() => {
         const role = localStorage.getItem('user_role');
-        setIsAdmin(role === 'administrador');
-    }, []);
+        const userSeccional = localStorage.getItem('user_seccional');
+
+        if (role === 'administrador' || role === 'admin' || role === 'Admin') {
+            setCanManage(true);
+        } else if (role === 'operador' && affiliate && userSeccional === affiliate.seccional) {
+            setCanManage(true);
+        } else {
+            setCanManage(false);
+        }
+    }, [affiliate]);
 
     // Cargar historial cuando se abre el modal
     useEffect(() => {
@@ -156,6 +166,97 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
         }
     };
 
+    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !affiliate) return;
+
+        setUploadingPhoto(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${affiliate.cedula}_${Math.random()}.${fileExt}`;
+            const filePath = `perfiles/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('fotos_afiliados')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('fotos_afiliados')
+                .getPublicUrl(filePath);
+
+            const result = await dbUpdate('afiliados', { foto_url: publicUrl }, { id: affiliate.id });
+
+            if (!result.success) throw new Error(result.error);
+
+            await registrarCambio({
+                afiliado_id: affiliate.id,
+                accion: 'editado',
+                campo_modificado: 'foto_url',
+                valor_anterior: affiliate.foto_url || 'sin foto',
+                valor_nuevo: publicUrl
+            });
+
+            alert('✅ Foto actualizada correctamente');
+            if (onDelete) onDelete(); // Refresh local data
+        } catch (error: any) {
+            console.error('Error al subir foto:', error);
+            alert('❌ Error al subir la foto: ' + error.message);
+        } finally {
+            setUploadingPhoto(false);
+        }
+    };
+
+    const handleDelete = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!affiliate) {
+            console.error('No affiliate data found');
+            return;
+        }
+
+        // Show the custom confirmation UI
+        setShowDeleteConfirm(true);
+    };
+
+    const performDelete = async () => {
+        if (!affiliate) return;
+
+        setIsSubmitting(true);
+        setShowDeleteConfirm(false); // Hide the confirmation UI once confirmed
+
+        try {
+            // 1. Eliminar historial primero (para evitar error de Foreign Key si no hay CASCADE)
+            await dbDelete('afiliados_historial', { afiliado_id: affiliate.id });
+
+            // 2. Eliminar de europa_presidentes_dm si aplica
+            if (affiliate.role === 'Presidente DM') {
+                const deletePresResult = await dbDelete('europa_presidentes_dm', { cedula: affiliate.cedula });
+                if (!deletePresResult.success) {
+                    console.error('Error eliminando de Presidente DM:', deletePresResult.error);
+                }
+            }
+
+            // 3. Finalmente eliminar el afiliado
+            const deleteResult = await dbDelete('afiliados', { id: affiliate.id });
+
+            if (!deleteResult.success) {
+                alert('❌ Error al eliminar: ' + deleteResult.error);
+            } else {
+                alert('✅ Afiliado eliminado exitosamente');
+                onClose();
+                if (onDelete) onDelete();
+            }
+        } catch (error: any) {
+            console.error('Error al eliminar:', error);
+            alert('❌ Error: ' + (error.message || 'Error desconocido'));
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -171,7 +272,7 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                             <p className="text-fp-green-100/80 text-sm font-medium mt-1">Detalle y gestión de miembro</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            {isAdmin && !isEditing && (
+                            {canManage && !isEditing && (
                                 <button
                                     onClick={() => {
                                         setIsEditing(true);
@@ -529,17 +630,31 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                         <div className="w-48 h-48 rounded-full p-1 bg-gradient-to-tr from-fp-green to-[#0d5f20] shadow-xl relative group">
                                             <div className="w-full h-full rounded-full border-4 border-white overflow-hidden bg-white">
                                                 <img
-                                                    src={affiliate.foto_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${affiliate.name}`}
+                                                    src={affiliate.foto_url || "/foto_perfil_afiliados.png"}
                                                     alt="Avatar"
                                                     className="w-full h-full object-cover"
                                                 />
                                             </div>
-                                            {isAdmin && (
-                                                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                                                    <span className="text-white text-xs font-bold uppercase tracking-wider">Cambiar Foto</span>
+                                            {canManage && (
+                                                <div
+                                                    className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                                    onClick={() => document.getElementById('photo-update')?.click()}
+                                                >
+                                                    <span className="text-white text-xs font-bold uppercase tracking-wider text-center px-4">
+                                                        {uploadingPhoto ? "Subiendo..." : "Cambiar Foto"}
+                                                    </span>
                                                 </div>
                                             )}
                                         </div>
+
+                                        <input
+                                            id="photo-update"
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handlePhotoChange}
+                                            disabled={uploadingPhoto}
+                                        />
 
                                         <div className={`px-4 py-1.5 rounded-full flex items-center gap-2 border shadow-sm ${affiliate.validated
                                             ? 'bg-green-50 border-green-200 text-green-700'
@@ -604,7 +719,7 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
 
                                         <div className="pt-6 border-t border-gray-100 flex flex-col gap-3">
                                             <div className="grid grid-cols-2 gap-3">
-                                                {isAdmin && (
+                                                {canManage && (
                                                     <button
                                                         onClick={async () => {
                                                             setIsSubmitting(true);
@@ -873,59 +988,62 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
 
                 {/* Footer con opción de eliminar */}
                 <div className="px-8 pb-8 pt-2">
-                    {activeTab === 'info' && !isEditing && (
-                        <button
-                            onClick={async () => {
-                                if (confirm('¿Seguro que desea eliminar este afiliado? Esta acción no se puede deshacer.')) {
-                                    setIsSubmitting(true);
-                                    try {
-                                        // Registrar en historial ANTES de eliminar
-                                        await registrarCambio({
-                                            afiliado_id: affiliate.id,
-                                            accion: 'eliminado',
-                                            detalles: {
-                                                nombre_completo: `${affiliate.name} ${affiliate.lastName}`,
-                                                cedula: affiliate.cedula,
-                                                seccional: affiliate.seccional
-                                            }
-                                        });
-
-                                        // --- Sincronización DELETE con europa_presidentes_dm ---
-                                        if (affiliate.role === 'Presidente DM') {
-                                            const deleteResult = await dbDelete('europa_presidentes_dm', { cedula: affiliate.cedula });
-
-                                            if (!deleteResult.success) {
-                                                console.error('Error eliminando de Presidente DM:', deleteResult.error);
-                                            }
-                                        }
-                                        // -------------------------------------------------------
-
-                                        const deleteResult = await dbDelete('afiliados', { id: affiliate.id });
-
-                                        if (!deleteResult.success) {
-                                            alert('Error al eliminar: ' + deleteResult.error);
-                                        } else {
-                                            alert('✅ Afiliado eliminado exitosamente');
-                                            onClose();
-                                            if (onDelete) onDelete();
-                                        }
-                                    } catch (error: any) {
-                                        console.error('Error:', error);
-                                        alert('Error: ' + (error.message || 'Error desconocido al eliminar'));
-                                    } finally {
-                                        setIsSubmitting(false);
-                                    }
-                                }
-                            }}
-                            className="w-full py-2.5 rounded-xl font-medium text-xs text-red-500 hover:text-red-600 hover:bg-red-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                            disabled={isSubmitting}
-                        >
-                            <Trash2 size={14} />
-                            <span>{isSubmitting ? 'Eliminando...' : 'Eliminar Afiliado de la Base de Datos'}</span>
-                        </button>
+                    {activeTab === 'info' && !isEditing && canManage && (
+                        <>
+                            {!showDeleteConfirm ? (
+                                <button
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="w-full py-2.5 rounded-xl font-medium text-xs text-red-500 hover:text-red-600 hover:bg-red-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                    disabled={isSubmitting}
+                                >
+                                    <Trash2 size={14} />
+                                    <span>Eliminar Afiliado de la Base de Datos</span>
+                                </button>
+                            ) : (
+                                <div className="bg-red-50 border border-red-100 rounded-xl p-4 animate-in fade-in zoom-in duration-200">
+                                    <div className="flex items-start gap-3 mb-3">
+                                        <AlertCircle className="text-red-600 shrink-0" size={20} />
+                                        <div>
+                                            <p className="font-bold text-red-700 text-sm">¿Estás seguro?</p>
+                                            <p className="text-xs text-red-600 mt-1">
+                                                Esta acción es irreversible. Se eliminarán todos los datos, historial y documentos asociados.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setShowDeleteConfirm(false)}
+                                            className="flex-1 py-2 bg-white border border-red-200 text-red-700 rounded-lg text-xs font-bold hover:bg-red-50 transition-colors"
+                                            disabled={isSubmitting}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={performDelete}
+                                            className="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                                            disabled={isSubmitting}
+                                        >
+                                            {isSubmitting ? (
+                                                <>
+                                                    <Loader2 size={12} className="animate-spin" />
+                                                    Eliminando...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Trash2 size={12} />
+                                                    Confirmar Eliminación
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
         </div >
     );
 }
+
+

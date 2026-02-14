@@ -26,7 +26,16 @@ export function ImportAffiliatesModal({ isOpen, onClose, onSuccess }: Props) {
     const [progress, setProgress] = useState(0);
     const [results, setResults] = useState<ImportResult[]>([]);
     const [showResults, setShowResults] = useState(false);
+    const [userRole, setUserRole] = useState<string | null>(null);
+    const [userSeccional, setUserSeccional] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useState(() => {
+        if (isOpen) {
+            setUserRole(localStorage.getItem('user_role'));
+            setUserSeccional(localStorage.getItem('user_seccional'));
+        }
+    });
 
     if (!isOpen) return null;
 
@@ -57,9 +66,9 @@ export function ImportAffiliatesModal({ isOpen, onClose, onSuccess }: Props) {
         if (!row.nombre || row.nombre.trim() === '') errors.push('Nombre es obligatorio');
         if (!row.apellidos || row.apellidos.trim() === '') errors.push('Apellidos es obligatorio');
         if (!row.cedula || row.cedula.trim() === '') errors.push('Cédula es obligatoria');
-        if (!row.seccional || row.seccional.trim() === '') errors.push('Seccional es obligatoria');
+        if (!row.email || row.email.trim() === '') errors.push('Email es obligatorio');
 
-        // Validar formato de email si existe
+        // Validar formato de email
         if (row.email && row.email.trim() !== '') {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(row.email)) {
@@ -142,17 +151,26 @@ export function ImportAffiliatesModal({ isOpen, onClose, onSuccess }: Props) {
                 }
 
                 // Preparar datos
+                const defaultSeccional = userSeccional || "Madrid";
+                let finalSeccional = row.seccional?.toString().trim() || defaultSeccional;
+
+                // Si es operador, forzar SIEMPRE su seccional
+                if (userRole === 'operador' && userSeccional) {
+                    finalSeccional = userSeccional;
+                }
+
                 const affiliateData = {
                     nombre: row.nombre.trim(),
                     apellidos: row.apellidos.trim(),
                     cedula: row.cedula.toString().trim(),
-                    seccional: row.seccional.trim(),
+                    seccional: finalSeccional,
                     validado: row.validado === true || row.validado === 'true' || row.validado === 'sí' || row.validado === 'si' || row.validado === 1,
                     role: row.role || 'Miembro',
                     email: row.email?.trim() || null,
                     telefono: row.telefono?.toString().trim() || null,
                     fecha_nacimiento: row.fecha_nacimiento || null,
-                    cargo_organizacional: row.cargo_organizacional?.trim() || null
+                    cargo_organizacional: row.cargo_organizacional?.trim() || null,
+                    foto_url: '/foto_perfil_afiliados.png'
                 };
 
                 // Intentar insertar
@@ -261,14 +279,14 @@ export function ImportAffiliatesModal({ isOpen, onClose, onSuccess }: Props) {
                                     Formato del Archivo
                                 </h3>
                                 <p className="text-sm text-emerald-700 mb-3">
-                                    El archivo debe tener las siguientes columnas (respeta mayúsculas/minúsculas):
+                                    El archivo debe tener las siguientes columnas (puedes usar mayúsculas o minúsculas):
                                 </p>
                                 <div className="grid grid-cols-2 gap-2 text-xs font-mono bg-white p-3 rounded border border-emerald-200">
                                     <div><span className="text-red-600">*</span> nombre</div>
                                     <div><span className="text-red-600">*</span> apellidos</div>
                                     <div><span className="text-red-600">*</span> cedula</div>
-                                    <div><span className="text-red-600">*</span> seccional</div>
-                                    <div>email</div>
+                                    <div><span className="text-red-600">*</span> email</div>
+                                    <div>seccional</div>
                                     <div>telefono</div>
                                     <div>fecha_nacimiento</div>
                                     <div>cargo_organizacional</div>
