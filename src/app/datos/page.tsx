@@ -441,16 +441,16 @@ export default function DatosElectorales() {
 
                             <div className="bg-[#005c2b] rounded-3xl p-6 shadow-lg text-white relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-                                <h3 className="font-bold text-lg mb-2 relative z-10">Liderazgo Actual</h3>
+                                <h3 className="font-bold text-lg mb-2 relative z-10">Crecimiento de la Fuerza del Pueblo</h3>
                                 <div className="mt-4 flex items-center gap-4 relative z-10">
                                     <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                                         <TrendingUp className="text-white" size={24} />
                                     </div>
                                     <div>
                                         <p className="text-3xl font-black">
-                                            {stats.fp > stats.prm ? "FP" : stats.prm > stats.fp ? "PRM" : "Empate"}
+                                            FP
                                         </p>
-                                        <p className="text-xs text-green-200 font-medium">Partido con más votos</p>
+                                        <p className="text-xs text-green-200 font-medium">Partido que más crece</p>
                                     </div>
                                 </div>
                             </div>
