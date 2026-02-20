@@ -24,9 +24,11 @@ git push origin main
 
 ### Resumen Rápido (El "Combo" del Desarrollador)
 Cuando termines una mejora y quieras verla en internet, ejecuta esto en orden:
-1. `git add .`
-2. `git commit -m "Mi mejora"`
-3. `git push origin main`
+1. 'cd i:\prueba_youtube\crm_electoral' 
+2. 'npm run dev' 
+3. 'git add .'
+4. 'git commit -m "Mi mejora"'
+5. 'git push origin main'
 
 ### ¿Cómo verificar que se está subiendo?
 Puedes ver el progreso en tiempo real aquí:
